@@ -1,0 +1,121 @@
+# # API-001 — WKMO OS API Contract Standard
+
+**Version:** 1.0  
+**Product version:** 1.0.0-alpha.1  
+**Sprint:** 4 — API Contracts  
+**Status:** Approved engineering contract
+
+## Purpose
+
+Define one governed HTTP contract for every WKMO OS domain. APIs expose Enterprise Objects and platform capabilities; they never become an alternate source of truth.
+
+## Base contract
+
+- Base path: `/api/v1`
+- Media type: `application/json`
+- Authentication: Bearer access token unless an operation is explicitly public.
+- Correlation: `X-Request-Id` accepted on requests and returned on responses.
+- Mutation replay protection: `Idempotency-Key` is supported and required for retryable protected mutations.
+- Time: ISO 8601 UTC in storage and API payloads; user timezone is separate metadata.
+- Identifiers: permanent opaque object identifiers; display names are never identifiers.
+- Version: product version derives from the root package; API contract version is independently declared as `x-wkmo-contract-version`.
+
+## Request rules
+
+1. Unknown fields must not silently alter governed data.
+2. Path identifiers must be non-empty.
+3. Mutations validate authorization, current state, expected version, and business rules before data changes.
+4. Protected state transitions require explicit intent and may require administrator authorization.
+5. Retryable commands must be idempotent.
+6. API clients must not write derived health, audit, event, lineage, or read-model data directly.
+
+## Response rules
+
+Successful responses return the governed resource or operation result and `X-Request-Id`. Delete operations may return `204`.
+
+Standard errors use:
+
+```json
+{
+  "code": "COLLECTION_STATE_CONFLICT",
+  "message": "The Collection cannot advance while required milestones remain incomplete.",
+  "requestId": "req_...",
+  "details": {},
+  "retryable": false
+}
+```
+
+Standard status meanings:
+
+- `400` malformed or invalid request
+- `401` authentication required or invalid
+- `403` authenticated but unauthorized
+- `404` absent or not visible
+- `409` state, version, uniqueness, or idempotency conflict
+- `422` governed business-rule failure
+- `429` rate or workload limit
+- `500` unexpected server failure
+
+## Concurrency and versions
+
+Mutations of versioned objects must support stale-write detection. Approved and Published versions are immutable. A client may create a new version but may not silently overwrite an immutable version.
+
+## Events
+
+The API does not publish an official Event until Security and State validation succeed and FLOW completes the governed operation. Events include causation and correlation identifiers.
+
+## Pagination and filtering
+
+Collection endpoints must use bounded pagination when result sets can grow. Filters must be explicit, documented, and permission-safe. Server defaults may not expose archived or inaccessible records.
+
+## File operations
+
+File upload contracts validate size, media type, ownership, malware-processing state, and retention classification. Upload Library files remain temporary until governed promotion.
+
+## Compatibility
+
+Non-breaking additions may occur within `/api/v1`. Breaking request, response, authentication, or lifecycle behavior requires a new API major version or formal compatibility layer.
+
+## Prohibited patterns
+
+- Raw credentials in payloads, logs, Events, or exports
+- Direct edits to Events, Audit Records, Health Snapshots, Launch Snapshots, or derived projections
+- Undocumented mutation side effects
+- Success responses for partially applied transactions
+- Client-selected authoritative health or lifecycle states
+- Automatic reuse of Upload Library assets without explicit user actionThis is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+
+      # Runs a single command using the runners shell
+      - name: Run a one-line script
+        run: echo Hello, world!
+
+      # Runs a set of commands using the runners shell
+      - name: Run a multi-line script
+        run: |
+          echo Add other actions to build,
+          echo test, and deploy your project.
